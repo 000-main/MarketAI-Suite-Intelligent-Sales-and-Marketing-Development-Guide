@@ -1,88 +1,120 @@
-import os
-
 import streamlit as st
 from groq import Groq
 
-st.set_page_config(page_title="MarketAI Suite Portal", page_icon="📈", layout="wide")
+# --- CONFIGURATION ---
+# Replace with your actual Groq API Key
+GROQ_API_KEY = "gsk_your_key_here"
 
-# --- AUTHENTICATION CONFIGURATION ---
-PORTAL_PASSWORD = "pass"  # Change this to your preferred password
-GROQ_KEY = "your_groq_api_key"  # Insert your API key here
+st.set_page_config(page_title="MarketAI Suite", page_icon="📈", layout="wide")
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-
-def login_screen():
-    st.title("🛡️ MarketAI Suite Access")
-    pwd = st.text_input("Enter Architect Credentials", type="password")
-    if st.button("Unlock Portal"):
-        if pwd == PORTAL_PASSWORD:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Unauthorized Access: Invalid Credentials")
-
-
-if not st.session_state.authenticated:
-    login_screen()
+# --- INITIALIZE CLIENT ---
+# This line fixes the GroqError by explicitly passing the key
+try:
+    client = Groq(api_key=GROQ_API_KEY)
+except Exception as e:
+    st.error(f"Configuration Error: {e}")
     st.stop()
 
-# --- PORTAL INITIALIZATION ---
-client = Groq(api_key=GROQ_KEY)
-
-st.title("🛡️ MarketAI Suite: Strategic Growth Architect")
-st.markdown("### Elite B2B/B2C Growth Intelligence")
-st.divider()
-
-with st.sidebar:
-    st.header("Campaign Settings")
-    model = st.selectbox(
-        "Intelligence Model", ["llama-3.3-70b-versatile", "llama-3-8b-8192"]
-    )
-    temp = st.slider("Strategy Creative Variance", 0.0, 1.0, 0.7)
-    if st.button("Logout"):
-        st.session_state.authenticated = False
-        st.rerun()
-
-SYSTEM_PROMPT = (
-    "Act as the MarketAI Suite Strategic Growth Architect, an elite consultant with 20+ years of experience. "
-    "Mission: Provide high-impact, executive-level guidance on lead identification and multi-channel outreach. "
-    "Format: Use tables for data, bold key terms, and always conclude with a 'Next Action Step' or 'Pro-Tip'."
+# --- SYSTEM PROMPT ---
+ARCHITECT_PROMPT = (
+    "Act as the MarketAI Suite Strategic Growth Architect. Provide high-impact, "
+    "executive-level guidance. Use tables for data, bold key terms, and "
+    "conclude with a 'Next Action Step' or 'Pro-Tip'."
 )
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# --- UI NAVIGATION ---
+st.title("📈 MarketAI Suite")
+tabs = st.tabs(["Home", "Campaign", "Pitch", "Lead Score"])
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- HOME TAB ---
+with tabs[0]:
+    st.markdown("### Welcome to the Growth Intelligence Hub")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.info("**Campaign Generator**: Data-driven strategies.")
+    with col2:
+        st.info("**Sales Pitch Creator**: Compelling personalization.")
+    with col3:
+        st.info("**Lead Qualifier**: Intelligent scoring.")
 
-if prompt := st.chat_input("Enter your growth challenge..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# --- CAMPAIGN GENERATOR ---
+with tabs[1]:
+    st.subheader("Campaign Generator")
+    st.caption("Create data-driven marketing campaigns tailored to your audience")
+    c_prod = st.text_input(
+        "PRODUCT NAME", placeholder="e.g., AI Analytics Platform", key="c_prod"
+    )
+    c_aud = st.text_input(
+        "TARGET AUDIENCE", placeholder="e.g., Health-conscious millennials", key="c_aud"
+    )
+    c_plat = st.text_input(
+        "MARKETING PLATFORM",
+        placeholder="e.g., LinkedIn, Instagram, Twitter, Email",
+        key="c_plat",
+    )
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    if st.button("GENERATE CAMPAIGN", type="primary"):
+        with st.spinner("Architecting..."):
+            prompt = f"Create a campaign for {c_prod} targeting {c_aud} on {c_plat}."
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": ARCHITECT_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            st.markdown(response.choices[0].message.content)
 
-    with st.chat_message("assistant"):
-        response_placeholder = st.empty()
-        full_response = ""
+# --- SALES PITCH CREATOR ---
+with tabs[2]:
+    st.subheader("Sales Pitch Creator")
+    st.caption("Craft compelling, personalized sales pitches for your target customers")
+    p_prod = st.text_input(
+        "PRODUCT NAME",
+        placeholder="e.g., Dairy Milk Silk Premium Chocolate",
+        key="p_prod",
+    )
+    p_persona = st.text_input(
+        "CUSTOMER PERSONA",
+        placeholder="e.g., CTO at Fortune 500, Retail Manager",
+        key="p_persona",
+    )
 
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                *st.session_state.messages,
-            ],
-            temperature=temp,
-            stream=True,
-        )
+    if st.button("GENERATE PITCH", type="primary"):
+        with st.spinner("Crafting..."):
+            prompt = f"Craft a sales pitch for {p_prod} tailored to a {p_persona}."
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": ARCHITECT_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            st.markdown(response.choices[0].message.content)
 
-        for chunk in completion:
-            content = chunk.choices[0].delta.content or ""
-            full_response += content
-            response_placeholder.markdown(full_response + "▌")
+# --- LEAD QUALIFIER ---
+with tabs[3]:
+    st.subheader("Lead Qualifier")
+    st.caption("Identify and prioritize high-value leads with AI-powered scoring")
+    l_name = st.text_input("LEAD NAME", placeholder="e.g., Rajesh Kumar, John Smith")
+    l_budget = st.text_input(
+        "BUDGET QUALITY", placeholder="e.g., High, Medium, Low, 50 lakhs"
+    )
+    l_need = st.text_input(
+        "BUSINESS NEED", placeholder="e.g., Critical, Important, Premium Expansion"
+    )
+    l_urgency = st.text_input(
+        "URGENCY LEVEL", placeholder="e.g., Immediate, Short-term, 6-week deadline"
+    )
 
-        response_placeholder.markdown(full_response)
-
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    if st.button("SCORE LEAD", type="primary"):
+        with st.spinner("Analyzing intent..."):
+            prompt = f"Score this lead: Name: {l_name}, Budget: {l_budget}, Need: {l_need}, Urgency: {l_urgency}."
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": ARCHITECT_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            st.markdown(response.choices[0].message.content)
