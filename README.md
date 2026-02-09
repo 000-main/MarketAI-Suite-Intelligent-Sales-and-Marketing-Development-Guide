@@ -27,7 +27,7 @@ MarketAI Suite is an intelligent assistant that combines advanced AI analysis wi
 
 ## 🔧 Setup & Installation
 
-1. **Clone the repo:** `git clone <your-repo-url>`
+1. **Clone the repo:** `git clone https://github.com/000-main/MarketAI-Suite-Intelligent-Sales-and-Marketing-Development-Guide.git`
 2. **Install dependencies:** `pip install -r requirements.txt` 
 3. **Configure API:** Create a `.env` file and add `GROQ_API_KEY=your_key_here` .
 4. **Run Application:** `python app.py` .
