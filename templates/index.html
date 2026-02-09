@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>MarketAI | Suite 2.0</title>
+        <link rel="stylesheet" href="/static/style.css" />
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    </head>
+    <body>
+        <!-- BACKGROUND MASK IS HANDLED IN CSS -->
+
+        <div id="dashboard" class="container">
+            <!-- HERO -->
+            <header class="hero">
+                <span class="badge">Next-Gen Strategy Engine</span>
+                <h1 class="main-title">MarketAI Suite</h1>
+                <p class="subtitle">
+                    Generate high-growth blueprints and executive narratives
+                    with the world's most advanced strategic AI.
+                </p>
+            </header>
+
+            <!-- STATS -->
+            <div class="stat-bar">
+                <div class="stat-item">
+                    <b>70B+</b><span>Llama 3.3 Engine</span>
+                </div>
+                <div class="stat-item">
+                    <b>Instant</b><span>Strategic Logic</span>
+                </div>
+                <div class="stat-item">
+                    <b>Secure</b><span>End-to-End Encrypted</span>
+                </div>
+            </div>
+
+            <!-- TOOL GRID -->
+            <div class="grid">
+                <div class="card" onclick="showTool('campaign')">
+                    <div class="card-icon">🚀</div>
+                    <h4>Campaigns</h4>
+                    <p>
+                        Build GTM blueprints and multi-channel creative hooks.
+                    </p>
+                </div>
+                <div class="card" onclick="showTool('pitch')">
+                    <div class="card-icon">🎤</div>
+                    <h4>Sales Pitch</h4>
+                    <p>
+                        Craft psychology-based scripts for executive
+                        stakeholders.
+                    </p>
+                </div>
+                <div class="card" onclick="showTool('scoring')">
+                    <div class="card-icon">⭐</div>
+                    <h4>Lead Scoring</h4>
+                    <p>
+                        Define qualification frameworks for complex sales
+                        cycles.
+                    </p>
+                </div>
+            </div>
+
+            <!-- MASTER CONSOLE -->
+            <section class="master-container">
+                <h3>🧠 Intelligence Command</h3>
+                <p style="color: #94a3b8; font-size: 0.95rem">
+                    Issue global strategic instructions to the neural engine.
+                </p>
+
+                <div class="instruction-box">
+                    <b>Usage:</b> Assign a Persona | Issue a Command <br /><i
+                        >Example: "CMO | Draft a 3-month growth plan for a
+                        Fintech startup."</i
+                    >
+                </div>
+
+                <div class="master-inputs">
+                    <input
+                        id="master-role"
+                        placeholder="Assign Global Persona (e.g. Brand Strategist)"
+                    />
+                    <textarea
+                        id="master-query"
+                        rows="3"
+                        placeholder="Input strategic command..."
+                    ></textarea>
+                    <button class="primary-btn" onclick="processMasterAI()">
+                        Execute Neural Engine
+                    </button>
+                </div>
+
+                <div
+                    id="master-loader"
+                    style="
+                        display: none;
+                        text-align: center;
+                        margin-top: 20px;
+                        color: #818cf8;
+                    "
+                >
+                    <b>Neural Weights Syncing...</b>
+                </div>
+                <div
+                    id="master-result"
+                    class="result-box"
+                    style="display: none"
+                ></div>
+            </section>
+        </div>
+
+        <!-- TOOL VIEW -->
+        <div
+            id="tool-view"
+            class="container"
+            style="display: none; padding: 60px 20px"
+        >
+            <div
+                style="
+                    background: white;
+                    padding: clamp(20px, 5vw, 50px);
+                    border-radius: 40px;
+                    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+                "
+            >
+                <button
+                    class="back-link"
+                    onclick="showDashboard()"
+                    style="margin-bottom: 30px"
+                >
+                    ← Dashboard
+                </button>
+                <h2
+                    id="tool-title"
+                    style="margin: 0; font-size: 2.2rem; color: #0f172a"
+                >
+                    Tool Name
+                </h2>
+                <div
+                    id="form-container"
+                    class="tool-inputs"
+                    style="margin-top: 30px"
+                ></div>
+                <button class="primary-btn" onclick="processAI()">
+                    Generate Intelligence
+                </button>
+                <div
+                    id="loader"
+                    style="display: none; text-align: center; margin-top: 30px"
+                >
+                    <b>Architecting Response...</b>
+                </div>
+                <div
+                    id="result-box"
+                    class="result-box"
+                    style="display: none"
+                ></div>
+            </div>
+        </div>
+
+        <script src="/static/script.js"></script>
+    </body>
+</html>
