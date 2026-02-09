@@ -1,182 +1,321 @@
+import re
+from typing import Dict, Optional
+
 import streamlit as st
 from groq import Groq
 
-# --- 1. CONFIGURATION ---
-# Replace with your actual Groq API Key to resolve the 'api_key must be set' error
-GROQ_API_KEY = "gsk_your_actual_key_here"
 
-st.set_page_config(page_title="MarketAI Suite", page_icon="📈", layout="wide")
+# ── CONFIGURATION & PROMPTS ──────────────────────────────────────────────
+class Config:
+    APP_NAME = "MarketAI Suite"
+    APP_ICON = "📈"
+    MODEL = "llama-3.3-70b-versatile"
+    # Hardcoded key as per your requirement
+    API_KEY = "Give_Your_Groq_api_key_here"
 
-# --- 2. INITIALIZE CLIENT ---
-try:
-    client = Groq(api_key=GROQ_API_KEY)
-except Exception as e:
-    st.error(f"Initialization Error: {e}")
+    PROMPTS = {
+        "campaign": """Act as a Growth Architect. Create a GTM campaign for:
+Product: {product} | Audience: {audience} | Platform: {platform}
+Provide: 1. Objective, 2. Value Prop, 3. Pain Points, 4. 3 Creative Concepts, 5. Budget, 6. KPIs.""",
+        "pitch": """Act as a Sales Consultant. Create a pitch for:
+Product: {product} | Audience: {audience} | Context: {context}
+Provide: 1. Hook, 2. Problem, 3. Solution, 4. Benefits, 5. Social Proof, 6. CTA.""",
+        "scoring": """Develop a lead scoring framework for:
+Product: {product} | Industry: {industry} | Cycle: {sales_cycle}
+Provide: 1. Demographics, 2. Behaviors, 3. Engagement, 4. Intent Indicators, 5. Thresholds.""",
+    }
 
-# --- 3. CUSTOM UI STYLING (High Visibility / Light Mode Safe) ---
-st.markdown(
-    """
+
+# ── AI LOGIC ─────────────────────────────────────────────────────────────
+def generate_ai_response(prompt_key: str, params: Dict[str, str]) -> Optional[str]:
+    try:
+        client = Groq(api_key=Config.API_KEY)
+        prompt = Config.PROMPTS[prompt_key].format(**params)
+
+        response = client.chat.completions.create(
+            model=Config.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=2000,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Generation Error: {e}")
+        return None
+
+
+# ── UI STYLING ───────────────────────────────────────────────────────────
+def inject_ui_style():
+    st.markdown(
+        """
     <style>
-    /* Primary Action Buttons */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+    html, body, [class*="st-"] {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Background and Layout */
+    .stApp {
+        background: #fdfdfd;
+    }
+
+    [data-testid="stSidebar"] {display: none;}
+    [data-testid="stHeader"] {display: none;}
+    .block-container {padding-top: 2rem;}
+
+    /* Typography */
+    .main-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 0px;
+    }
+
+    .subtitle {
+        color: #64748b;
+        text-align: center;
+        margin-bottom: 3rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    /* Dashboard Cards */
+    .card {
+        background: white;
+        padding: 2.5rem 1.5rem;
+        border-radius: 24px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        text-align: center;
+        height: 220px;
+        margin-bottom: 15px;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.15);
+        border-color: #3b82f6;
+    }
+
+    .card h3 { font-size: 2.5rem; margin-bottom: 10px; }
+    .card h4 { color: #1e293b; font-weight: 700; margin-bottom: 8px; }
+    .card p { color: #64748b; font-size: 0.9rem; line-height: 1.4; }
+
+    /* Forms and Inputs */
+    .stTextInput input, .stSelectbox select {
+        border-radius: 12px !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 12px !important;
+    }
+
+    /* Result Container - FIXED GHOSTING/CURVE ERROR */
+    .result-box {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid #e2e8f0;
+        border-left: 6px solid #3b82f6;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        margin-top: 25px;
+        line-height: 1.6;
+        color: #334155;
+        min-height: 50px; /* Prevent collapse */
+    }
+
+    /* Buttons */
     .stButton>button {
-        background-color: #6366f1 !important;
-        color: white !important;
-        border-radius: 10px;
-        font-weight: bold;
         width: 100%;
-        height: 3em;
+        border-radius: 12px;
+        padding: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        transition: all 0.2s ease;
+    }
+
+    .stButton>button[kind="primary"] {
+        background: #3b82f6;
         border: none;
     }
-    /* Module Card Styling for Home Page */
-    .module-card {
-        padding: 25px;
-        border-radius: 15px;
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        background-color: rgba(99, 102, 241, 0.05);
-        margin-bottom: 20px;
-        min-height: 200px;
-    }
-    /* Response Box Styling */
-    .response-box {
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #6366f1;
-        background-color: rgba(0, 0, 0, 0.02);
-        margin-top: 20px;
+
+    .back-btn button {
+        width: auto !important;
+        background: transparent !important;
+        color: #64748b !important;
+        border: 1px solid #e2e8f0 !important;
+        margin-bottom: 2rem;
     }
     </style>
     """,
-    unsafe_allow_html=True,
-)
-
-# --- 4. NAVIGATION & REDIRECT LOGIC ---
-if "page" not in st.session_state:
-    st.session_state.page = "🏠 Home"
-if "ai_response" not in st.session_state:
-    st.session_state.ai_response = ""
+        unsafe_allow_html=True,
+    )
 
 
-def nav_to(target):
-    st.session_state.page = target
-    st.session_state.ai_response = ""
+# ── NAVIGATION LOGIC ─────────────────────────────────────────────────────
+def navigate_to(page_name: str):
+    st.session_state.page = page_name
     st.rerun()
 
 
-# --- 5. SIDEBAR NAVIGATION ---
-with st.sidebar:
-    st.title("🛡️ MarketAI Nav")
-    selection = st.radio(
-        "Go to:",
-        ["🏠 Home", "🚀 Campaign", "🎤 Pitch", "⭐ Scoring"],
-        index=["🏠 Home", "🚀 Campaign", "🎤 Pitch", "⭐ Scoring"].index(
-            st.session_state.page
-        ),
+# ── PAGES ────────────────────────────────────────────────────────────────
+def render_dashboard():
+    st.markdown('<h1 class="main-title">MarketAI Suite</h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subtitle">Next-generation Intelligence for High-Growth Teams</p>',
+        unsafe_allow_html=True,
     )
-    st.session_state.page = selection
-    st.divider()
-    if st.button("Clear Workspace"):
-        st.session_state.ai_response = ""
-        st.rerun()
-
-# --- 6. PAGE ROUTING & CONTENT ---
-
-# --- HOME DASHBOARD ---
-if st.session_state.page == "🏠 Home":
-    st.title("📈 MarketAI Suite")
-    st.subheader("Elite Growth Intelligence Portal")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown(
-            "<div class='module-card'><h3>🚀 Campaign</h3><p>Generate high-impact GTM strategies tailored to your audience.</p></div>",
+            '<div class="card"><h3>🚀</h3><h4>Campaigns</h4><p>Generate end-to-end GTM strategies & platform creative.</p></div>',
             unsafe_allow_html=True,
         )
-        if st.button("Open Campaign Generator"):
-            nav_to("🚀 Campaign")
+        if st.button("Start Building", key="btn_camp"):
+            navigate_to("campaign")
 
     with col2:
         st.markdown(
-            "<div class='module-card'><h3>🎤 Pitch</h3><p>Craft personalized CXO scripts that resonate and drive conversions.</p></div>",
+            '<div class="card"><h3>🎤</h3><h4>Sales Pitch</h4><p>Convert prospects with executive-level sales narratives.</p></div>',
             unsafe_allow_html=True,
         )
-        if st.button("Open Pitch Creator"):
-            nav_to("🎤 Pitch")
+        if st.button("Draft Pitch", key="btn_pitch"):
+            navigate_to("pitch")
 
     with col3:
         st.markdown(
-            "<div class='module-card'><h3>⭐ Scoring</h3><p>Qualify leads with AI intent scoring to maximize sales efficiency.</p></div>",
+            '<div class="card"><h3>⭐</h3><h4>Lead Scoring</h4><p>Identify high-intent buyers with AI qualification frameworks.</p></div>',
             unsafe_allow_html=True,
         )
-        if st.button("Open Lead Qualifier"):
-            nav_to("⭐ Scoring")
+        if st.button("Optimize Scoring", key="btn_score"):
+            navigate_to("scoring")
 
-# --- CAMPAIGN GENERATOR ---
-elif st.session_state.page == "🚀 Campaign":
-    st.title("Campaign Generator")
-    st.caption("Create data-driven marketing campaigns tailored to your audience")
 
-    prod = st.text_input(
-        "PRODUCT NAME", placeholder="e.g., EcoStream AI: Carbon Tracker"
+def render_tool_header(title, icon):
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("← Back to Dashboard"):
+        navigate_to("home")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(f"## {icon} {title}")
+    st.markdown("---")
+
+
+def render_campaign():
+    render_tool_header("Campaign Generator", "🚀")
+
+    col1, col2 = st.columns(2)
+    product = col1.text_input("Product/Service Name", placeholder="e.g. Nexus CRM")
+    audience = col2.text_input(
+        "Ideal Customer Persona", placeholder="e.g. VPs of Sales in Fintech"
     )
-    aud = st.text_input(
-        "TARGET AUDIENCE", placeholder="e.g., Operations Directors at Mfg Firms"
-    )
-    plat = st.text_input(
-        "MARKETING PLATFORM", placeholder="e.g., LinkedIn Sponsored Content"
-    )
-
-    if st.button("GENERATE CAMPAIGN"):
-        with st.spinner("Architecting strategy..."):
-            prompt = f"Act as a Growth Architect. Generate a GTM campaign for {prod} targeting {aud} on {plat}."
-            chat = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            st.session_state.ai_response = chat.choices[0].message.content
-
-# --- SALES PITCH CREATOR ---
-elif st.session_state.page == "🎤 Pitch":
-    st.title("Sales Pitch Creator")
-    st.caption("Craft compelling, personalized sales pitches for your target customers")
-
-    p_name = st.text_input("PRODUCT NAME", placeholder="e.g., SwiftAudit Software")
-    p_pers = st.text_input("CUSTOMER PERSONA", placeholder="e.g., CTO at Fortune 500")
-
-    if st.button("GENERATE PITCH"):
-        with st.spinner("Personalizing pitch..."):
-            prompt = (
-                f"Draft an executive sales pitch for {p_name} tailored to a {p_pers}."
-            )
-            chat = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            st.session_state.ai_response = chat.choices[0].message.content
-
-# --- LEAD QUALIFIER ---
-elif st.session_state.page == "⭐ Scoring":
-    st.title("Lead Qualifier")
-    st.caption("Identify and prioritize high-value leads with AI-powered scoring")
-
-    l_name = st.text_input("LEAD NAME")
-    l_budg = st.text_input("BUDGET QUALITY", placeholder="e.g., High, Medium, Low")
-    l_need = st.text_input(
-        "BUSINESS NEED", placeholder="e.g., Critical, Premium Expansion"
-    )
-    l_urge = st.text_input(
-        "URGENCY LEVEL", placeholder="e.g., Immediate, 6-week deadline"
+    platform = st.selectbox(
+        "Primary Channel",
+        ["LinkedIn Ads", "Google Search", "Meta Ads", "Cold Email Outbound"],
     )
 
-    if st.button("SCORE LEAD"):
-        with st.spinner("Analyzing intent..."):
-            st.session_state.ai_response = f"### 📊 Intent Analysis: {l_name}\n- **Quality Score:** 92/100\n- **Strategy:** Immediate follow-up required.\n- **Risk Factor:** Budget alignment confirmed."
+    if st.button("Generate Strategy", type="primary"):
+        if product and audience:
+            with st.spinner("Analyzing market dynamics..."):
+                res = generate_ai_response(
+                    "campaign",
+                    {"product": product, "audience": audience, "platform": platform},
+                )
+                if res:
+                    # Wrapped in a single markdown block to prevent UI glitch
+                    st.markdown(
+                        f'<div class="result-box">{res}</div>', unsafe_allow_html=True
+                    )
+                    st.download_button(
+                        "Export as Markdown", res, file_name=f"{product}_campaign.md"
+                    )
+        else:
+            st.error("Missing required fields.")
 
-# --- 7. RESPONSE DISPLAY ---
-if st.session_state.ai_response:
-    st.divider()
-    st.markdown("### 🤖 MarketAI Architect Response")
-    st.markdown(
-        f"<div class='response-box'>{st.session_state.ai_response}</div>",
-        unsafe_allow_html=True,
+
+def render_pitch():
+    render_tool_header("Sales Pitch Craft", "🎤")
+
+    col1, col2 = st.columns(2)
+    product = col1.text_input("What are you selling?")
+    audience = col2.text_input("Who is the decision maker?")
+    context = st.selectbox(
+        "Conversation Stage",
+        ["Cold Outreach", "Discovery Call", "Final Executive Pitch", "Renewal Brief"],
     )
+
+    if st.button("Generate Pitch", type="primary"):
+        if product and audience:
+            with st.spinner("Drafting high-conversion pitch..."):
+                res = generate_ai_response(
+                    "pitch",
+                    {"product": product, "audience": audience, "context": context},
+                )
+                if res:
+                    st.markdown(
+                        f'<div class="result-box">{res}</div>', unsafe_allow_html=True
+                    )
+                    st.download_button(
+                        "Export as Markdown", res, file_name="pitch_script.md"
+                    )
+
+
+def render_scoring():
+    render_tool_header("Lead Scoring Framework", "⭐")
+
+    col1, col2 = st.columns(2)
+    product = col1.text_input("Product Name")
+    industry = col2.text_input("Target Industry Vertical")
+    cycle = st.selectbox(
+        "Sales Complexity",
+        ["Transactional (Fast)", "Medium Market", "Enterprise (High-Touch)"],
+    )
+
+    if st.button("Build Framework", type="primary"):
+        if product and industry:
+            with st.spinner("Constructing scoring matrix..."):
+                res = generate_ai_response(
+                    "scoring",
+                    {"product": product, "industry": industry, "sales_cycle": cycle},
+                )
+                if res:
+                    st.markdown(
+                        f'<div class="result-box">{res}</div>', unsafe_allow_html=True
+                    )
+                    st.download_button(
+                        "Export as Markdown", res, file_name="lead_scoring.md"
+                    )
+
+
+# ── MAIN APP ENTRY ───────────────────────────────────────────────────────
+def main():
+    st.set_page_config(
+        page_title="MarketAI Suite",
+        page_icon="📈",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+    inject_ui_style()
+
+    if "page" not in st.session_state:
+        st.session_state.page = "home"
+
+    # Routing logic
+    if st.session_state.page == "home":
+        render_dashboard()
+    elif st.session_state.page == "campaign":
+        render_campaign()
+    elif st.session_state.page == "pitch":
+        render_pitch()
+    elif st.session_state.page == "scoring":
+        render_scoring()
+
+
+if __name__ == "__main__":
+    main()
